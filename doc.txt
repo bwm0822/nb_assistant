@@ -10,6 +10,34 @@ Python + LLM 控制電腦
 軟體需求:
     1. 安裝 Ollama
     2. 安裝 Python
+    3. 安裝 ChromeDriver 
+        Note: Selenium 4 + ChromeDriverManager 可以自動下載 ChromeDriver，就不需要自行安裝了
+        以下是 安裝與使用 ChromeDriver 的完整步驟。
+        1. 確認你的 Chrome 版本
+            開啟 Chrome 瀏覽器。
+            在網址列輸入 chrome://settings/help，並按下 Enter。
+            在「關於 Google Chrome」頁面中，你會看到詳細的 Chrome 版本資訊。
+        2. 下載相匹配版本的 ChromeDriver
+            網站 : https://googlechromelabs.github.io/chrome-for-testing/
+            到網站下載相匹配版本的 ChromeDriver，並將 zip 解壓縮到你的專案目錄。
+        3. 檢查 ChromeDriver 版本
+            開啟終端機或命令提示字元，到 ChromeDriver 所在的目錄。
+            執行以下命令：
+            chromedriver --version
+    4. 安裝 Microsoft C++ Build Tools，()
+        若安裝 WebRTC 套件，出現以下錯誤，代表你缺少 Microsoft Visual C++ 14.0 或更高版本，這是 webrtcvad 需要的 C++ 編譯器。
+        running build_ext
+        building '_webrtcvad' extension
+        error: Microsoft Visual C++ 14.0 or greater is required. Get it with "Microsoft C++ Build Tools": https://visualstudio.microsoft.com/visual-cpp-build-tools/
+        [end of output]
+        請下載並安裝 Microsoft Build Tools for Visual Studio
+        網址: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+        在安裝時 勾選：
+            C++ Build Tools
+            Windows 10 SDK
+            C++ CMake Tools for Windows
+        重新啟動電腦
+
 
 在專案目錄下建立 Python 虛擬環境
     python -m venv ./venv
@@ -46,10 +74,93 @@ Python + LLM 控制電腦
         Selenium 是一個用於自動化網頁操作的 Python 函式庫，通常用來進行網頁測試、爬蟲或自動化操作。
         它可以控制瀏覽器執行如點擊、填寫表單、滾動網頁等操作，並支援多種瀏覽器，
         包括 Chrome、Firefox、Edge 等。
+        Selenium 4.0 以後的版本可搭配 ChromeDriverManager 來管理自動下載 ChromeDriver，
+        就不要自己下載 ChromeDriver 了
 
+    7. 安裝 ChromeDriverManager 套件
+        pip install webdriver-manager
+        使用 webdriver_manager 可以讓我們自動下載和管理適合版本的 ChromeDriver，避免手動下載和管理驅動程式。你可以安裝這個庫：
+        ChromeDriver 是 Selenium 自動化 Google Chrome 瀏覽器 所需的驅動程式。
 
+    7. 安裝 WebRTC 套件，用來降噪（VAD - Voice Activity Detection）
+        pip install webrtcvad
+        WebRTC 的 py-webrtcvad 可以去除背景靜音，提高語音辨識的準確率。
+        若執行時出現 ModuleNotFoundError: No module named 'pkg_resources'，
+        這個錯誤是因為 webrtcvad 模組在導入時需要 pkg_resources 模組，但 pkg_resources 並沒有安裝在你的虛擬環境中。
+        pkg_resources 是 setuptools 套件的一部分，因此你只需要安裝 setuptools 來解決此問題。
+
+    8. 安裝 setuptools 套件
+        pip install setuptools
+        setuptools 是一個 Python 的工具包，它用來協助開發者管理 Python 包和模組的安裝與分發。它提供了很多強大的功能，特別是在創建和發佈 Python 包方面。最常見的用途之一是自動處理包的依賴關係、安裝過程，以及提供一些有用的功能來設置 Python 的安裝過程。
+        主要功能：
+        創建可安裝的 Python 包：setuptools 使得你能夠創建並管理 setup.py 檔案，這是大多數 Python 包分發過程的一部分。
+        依賴關係管理：當你創建包時，可以在 setup.py 中指定所需的其他 Python 库，setuptools 會處理這些依賴關係的安裝。
+        自動安裝和卸載包：使用 pip 安裝的 Python 包，通常會自動使用 setuptools。
+        打包和分發：setuptools 可以用來打包你的代碼並創建可以發佈到 Python 包索引（PyPI）的檔案。
+
+    9. 安裝 webdriver_manager 套件
+        pip install webdriver-manager
+        webdriver_manager.chrome 是一個可以自動下載並管理 ChromeDriver 的 Python 庫。
+        它簡化了 Selenium 的配置過程，因為你不再需要手動下載與安裝與你當前 Chrome 瀏覽器版本匹配的 ChromeDriver。
+        這樣可以確保你始終使用正確版本的 ChromeDriver，從而避免了版本不匹配的問題。
+
+    10. 安裝 BeautifulSoup
+        pip install beautifulsoup4
+        BeautifulSoup 是 Python 的一個強大函式庫，用於解析 HTML 和 XML。它可以幫助你從網頁中提取資料，進行網頁爬取 (Web Scraping)。
+
+        🔹 常用功能
+        功能	                    說明	                範例
+        soup.find(tag)	            找到第一個指定標籤	    soup.find("p")
+        soup.find_all(tag)	        找到所有指定標籤	    soup.find_all("p")
+        soup.select(css_selector)	使用 CSS 選擇器找元素	soup.select(".content")
+        soup.get_text()	            獲取純文字內容	        soup.get_text()
+        tag["attribute"]	        取得標籤的屬性	        soup.a["href"]
+
+    OpenAI Whisper 或 DeepSpeech
 
 附錄
     移除 Python 所有套件
         pip freeze > requirements.txt
         pip uninstall -r requirements.txt -y
+
+
+
+
+
+用 Python 讀取網頁文字內容，你可以使用以下方法：
+
+1. 使用 requests + BeautifulSoup (適用於靜態網頁)
+    pip install requests beautifulsoup4
+
+2. 使用 Selenium (適用於 JavaScript 生成內容的網頁)
+    pip install selenium webdriver-manager
+
+選擇哪種方式？
+
+✅ 使用 requests + BeautifulSoup：
+
+    如果網頁是靜態的（HTML 直接包含內容）。
+
+    速度快，程式簡單。
+
+✅ 使用 Selenium：
+
+    如果網頁是動態的（需要 JavaScript 才能載入內容）。
+
+    模擬人類操作，但速度較慢。
+
+如果不確定網頁是靜態還是動態，可以先用 requests 測試，沒有獲取到完整內容再試 Selenium！選擇哪種方式？
+
+✅ 使用 requests + BeautifulSoup：
+
+    如果網頁是靜態的（HTML 直接包含內容）。
+
+    速度快，程式簡單。
+
+✅ 使用 Selenium：
+
+    如果網頁是動態的（需要 JavaScript 才能載入內容）。
+
+    模擬人類操作，但速度較慢。
+
+如果不確定網頁是靜態還是動態，可以先用 requests 測試，沒有獲取到完整內容再試 Selenium！
