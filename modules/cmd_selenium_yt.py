@@ -72,6 +72,35 @@ def backward(args):
     driver.execute_script(f"document.querySelector('video').currentTime -= {sec}")
     return {"status":1, "text":f"倒退 {sec}秒"}
 
+## 設定音量
+## 參數範圍 0% - 100%
+def volume(args):   
+    if driver is None: return {"status":-1, "text":"youtube 未開啟"}
+    try:
+        convert_percent = lambda s: max(0, min(1, float(s.strip("%")) / 100)) 
+        vol = convert_percent(args[0])
+    except: vol = 0.5
+    # 獲取 video 元素
+    video = driver.find_element(By.TAG_NAME, "video")
+    # 使用 JavaScript 設定音量 (範圍 0.0 - 1.0)
+    volume = driver.execute_script("return document.querySelector('video').volume")
+    print(f"目前音量: {volume:.2f}")
+    driver.execute_script(f"arguments[0].volume = {vol};", video)  # 設為 50% 音量
+    return {"status":1, "text":f"音量設為 {vol*100:.0f}%"}
+
+def mute(args):
+    if driver is None: return {"status":-1, "text":"youtube 未開啟"}
+    # 獲取 video 元素
+    try:
+        on = args[0].lower() not in {"false", "off", "0"}
+    except:
+        on = True
+    video = driver.find_element(By.TAG_NAME, "video")
+    # 使用 JavaScript 設定音量為 0
+    driver.execute_script(f"arguments[0].muted = {'true' if on else 'false'};", video)  # 靜音
+    return {"status":1, "text":f"{'靜音' if on else '取消靜音'}"}
+
+
 def get_status():
     if driver is None: return {"status":-1, "text":"youtube 未開啟"}
     # Check if the video element is present
@@ -151,6 +180,8 @@ def execute(cmd, args):
         case "next": return next()
         case "forward": return forward(args)
         case "backward": return backward(args)
+        case "volume": return volume(args)
+        case "mute": return mute(args)
         case "play":
             if driver is None: open() 
             return search_and_play(args)

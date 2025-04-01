@@ -162,3 +162,7 @@ cython_debug/
 # customize to your needs...
 tmp/
 *.wav
+*.mp3
+*.ogg
+*.mp4
+*.webm

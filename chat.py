@@ -204,6 +204,63 @@ Note:
 4. 關鍵字不要翻成英文，直接用原來的關鍵字。
 """
 
+prompt_main_1 = """
+你是一個指令分析器，根據你收到的訊息，轉換成
+forward backward resume pause next play close query chat 的指令，
+轉換規則，指令格式如下：
+
+1. 訊息: 快轉       指令格式:  forward 時間轉成秒數，沒有時間則設成10
+    範例:
+    快轉            forward 10
+    快轉 時間       forward 時間轉成秒數
+
+2. 訊息: 倒轉       指令格式:   backward 時間轉成秒數，沒有時間則設成10
+    範例:
+    倒轉            backward 10 
+    倒轉 時間       backward 時間轉成秒數 
+
+3. 訊息: 繼續       指令格式: resume
+4. 訊息: 暫停       指令格式: pause
+5. 訊息: 下一個     指令格式: next
+
+6. 訊息: 搜尋 關鍵字    指令格式:   play 關鍵字
+   訊息: 搜尋           指令格式:   query 請問要搜尋什麼
+    範例:
+    搜尋抒情歌      play 抒情歌
+    搜尋            query 請問要搜尋什麼
+
+7. 敘述: 聽\撥歌\撥放 關鍵字   指令格式:    play 關鍵字
+   敘述: 聽\撥歌\撥放         指令格式:     query 請問要撥的歌
+    範例:
+    聽伍佰的歌      play 伍佰的歌
+    聽              query 請問要聽什麼
+
+8. 訊息: 看\我想看 關鍵字     指令格式:     play 關鍵字
+   訊息: 看\我想看            指令格式:     query 請問要看什麼
+   範例:
+    我想看新聞      play 新聞
+    我想看          query 請問要看什麼
+
+9. 訊息: 關閉               指令格式:   close
+
+10. 其他無法識別的指令，天氣、人名、問題...等都當成聊天    指令格式:   chat
+    範例:
+    你是誰？        chat
+    你會什麼？      chat
+    今天幾號？      chat
+    你喜歡什麼？    chat
+    誰比較厲害？    chat
+    牛頓            chat
+    愛因斯坦        chat
+    量子力學        chat
+
+Note:
+1. 返回 格式字串，不要添加任何額外的文字或說明。
+2. 只使用 forward backward resume pause next play close query chat 當指令，
+    千萬不要自作聰明，不要自創指令。
+3. 關鍵字不要翻成英文，直接用原來的關鍵字。
+"""
+
 prompt_query = f"""
 你詢問使用者，根據使用者的回答，轉成以下的指令格式字串：
 使用者的回答: 取消               指令格式:    cancel()
@@ -240,7 +297,7 @@ def assistant_query(user_input):
 
 def assistant_main(user_input):
     response = ollama.chat(model=LLM_MODEL_NAME, messages=[
-        {"role": "system", "content": prompt_main},
+        {"role": "system", "content": prompt_main_1},
         {"role": "user", "content": user_input},
     ], stream=False)
     command = response["message"]["content"]
@@ -298,7 +355,7 @@ def process_stream(stream):
     print('\n')
 
 
-def youtube(cmd, args):
+def cmd_youtube(cmd, args):
     ret = cmd_yt.execute(cmd, args)
     msg(ret['text'])
 
@@ -311,7 +368,7 @@ def execute_command_query(args):
     assistant_query(user_input)
 
 def process_command(command, user_input):
-    [cmd, args] = parse_command(command)
+    [cmd, args] = parse_command_1(command)
     match cmd:
         case "chat":
             assistant_chat(user_input)
@@ -321,7 +378,7 @@ def process_command(command, user_input):
             print("Chatbot:")
             msg("取消")
         case "pause" | "resume" | "next" | "close" | "forward" | "backward" | "play":
-            youtube(cmd, args)
+            cmd_youtube(cmd, args)
         case _:
             # msg("無法識別的指令")
             assistant_chat(user_input)
@@ -341,6 +398,16 @@ def parse_command(text):
     if DEBUG: print('parse:',ret)
     return ret
 
+
+def parse_command_1(text):
+    sps = text.strip().replace('(',' ').replace(')',' ').split()
+    print(sps, len(sps))
+    if len(sps) > 0: cmd = sps[0]; args = sps[1:]
+    else: cmd=''; args=[]
+    ret = [cmd, args]
+    if DEBUG: print('parse:',ret)
+    return [cmd, args]              
+    
 def get_user_input():
     if SPEAK:
         while True:

@@ -38,6 +38,17 @@ Python + LLM 控制電腦
             C++ CMake Tools for Windows
         重新啟動電腦
 
+    5. 安裝 yt-dlp
+        安裝教學網站: https://ivonblog.com/posts/yt-dlp-installation/
+        yt-dlp 是 youtube-dl 的改進版，專門用來下載 YouTube、Bilibili、Twitter 等各種影音網站的影片和音訊。
+        它比 youtube-dl 更新更快，支援更多功能。
+
+    5. 安裝 vlc
+        網址: https://www.videolan.org/vlc/index.zh_TW.html
+        VLC（VideoLAN Client） 是一款免費、開源的多媒體播放器，可以播放 影片、音樂、串流媒體，
+        並支援幾乎所有格式（如 MP4、MKV、MP3、FLAC 等）。
+        它可以在 Windows、macOS、Linux、Android、iOS 以及 Raspberry Pi 上運行。
+
 
 在專案目錄下建立 Python 虛擬環境
     python -m venv ./venv
@@ -115,6 +126,16 @@ Python + LLM 控制電腦
         soup.select(css_selector)	使用 CSS 選擇器找元素	soup.select(".content")
         soup.get_text()	            獲取純文字內容	        soup.get_text()
         tag["attribute"]	        取得標籤的屬性	        soup.a["href"]
+
+    11. 安裝 yt-dlp 套件
+        pip install yt-dlp
+
+    12. 安裝 python-vlc 套件
+        pip install python-vlc
+
+        [00000231b0b186f0] lua stream error: Couldn't process youtube video URL, please check for updates to this script
+        表示 VLC 的 youtube.lua 腳本已經過時，無法解析 YouTube 影片網址。
+
 
     OpenAI Whisper 或 DeepSpeech
 
