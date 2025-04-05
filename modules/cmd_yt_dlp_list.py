@@ -3,11 +3,14 @@ import yt_dlp
 import vlc
 import time
 
-global player,videos,playlist,index
+global player,videos,playlist,index,media_list
+
+instance = vlc.Instance()   # 建立 VLC 環境
 player = None
 videos = []
 playlist = []
 index = 0
+media_list = None
 
 def seconds_to_hms(seconds):
     hours, remainder = divmod(seconds, 3600)
@@ -54,40 +57,33 @@ def search(query):
 
     return {"status":1, "content":playlist}  # 回傳搜尋結果
 
-def play(video):
-    # 只想播放 單一影片或音訊，不需要進階控制
-    global player
-    if video == '': return {"status":-1, "msg":"video 為空"}
+    
+def play():
+    global player, media_list, index
 
-    if player is None:
-        player = vlc.MediaPlayer(video['url'])
-    else:
-        player.stop()
-        media = vlc.Media(video['url'])
-        player.set_media(media)
+    if media_list: media_list.release()
+    media_list = instance.media_list_new()
+
+    for video in videos:
+        media = instance.media_new(video['url'])
+        media_list.add_media(media)
+
+    # 播放
+    if player is None: player = instance.media_list_player_new()
+    else: player.stop()
+    player.set_media_list(media_list)
     player.play()
+    index = 0
+
     return {"status":1, "msg":f"播放：{playlist[index]}"}
 
-def play_multi(url):
-    global player
-    # 需要管理 多個播放器（如播放多個音訊或影片）
-    instance = vlc.Instance("--no-xlib")  # 避免 GUI 錯誤
-    player = instance.media_player_new()
-    media = instance.media_new(url)
-    player.set_media(media)
-    player.play()
-    print(f"正在播放：{url}")
-    time.sleep(5)  # 播放幾秒後，避免程式立即結束
-    return player
 
 def search_and_play(query):
     search_result = search(query)  # 搜尋影片
     if search_result['status'] == -1:
         return search_result  # 如果搜尋失敗，直接回傳錯誤訊息
     show_playlist()  # 顯示搜尋結果
-    video = videos[0]  # 取得第一個搜尋結果
-    return play(video)  # 播放第一個搜尋結果
-    # return play_all()  # 播放搜尋結果清單
+    return play()  # 播放第一個搜尋結果
 
 def pause():
     if player is None: return {"status":-1, "msg":"播放器未開啟"}
@@ -109,41 +105,53 @@ def close():
 
 def previous():
     # 這裡可以實現播放上一首音樂的邏輯
-    global index
     if player is None: return {"status":-1, "msg":"播放器未開啟"}
-    if len(playlist) == 0: return {"status":-1, "msg":"播放清單為空"}
-    index = (index - 1) % len(playlist)  # 循環播放
-    video = videos[index] # 取得上一首影片資訊
-    player.stop()  # 停止當前播放
-    media = vlc.Media(video['url'])  # 取得上一首影片的媒體資訊
-    player.set_media(media)  # 設定新的媒體
-    player.play()  # 播放新的媒體
+    
+    global index
+    pre_mrl = get_mrl()
+    player.previous()  # 播放下一首音樂
+    time.sleep(0.5)
+    next_mrl = get_mrl()
+
+    if pre_mrl != next_mrl:
+        index = max(index - 1, 0)  # 確保索引不超出範圍
+        print('播放上一首音樂')
+    else:
+        print('播放當前音樂')
     return {"status":1, "msg":f"播放：{playlist[index]}"}
 
 def next():
     # 這裡可以實現播放下一首音樂的邏輯
-    global index
     if player is None: return {"status":-1, "msg":"播放器未開啟"}
-    if len(playlist) == 0: return {"status":-1, "msg":"播放清單為空"}
-    index = (index + 1) % len(playlist)  # 循環播放
-    video = videos[index] # 取得下一首影片資訊
-    player.stop()  # 停止當前播放
-    media = vlc.Media(video['url'])  # 取得下一首影片的媒體資訊
-    player.set_media(media)  # 設定新的媒體
-    player.play()  # 播放新的媒體
-    filesize = video.get('filesize', 0)  # 取得檔案大小
-    if filesize == 0:
-        filesize = video.get('filesize_approx', 0)  # 嘗試取得近似檔案大小
+
+    global index    
+    pre_mrl = get_mrl()
+    player.next()  # 播放下一首音樂
+    time.sleep(0.5)
+    next_mrl = get_mrl()
+
+    if pre_mrl != next_mrl:
+        index = (index + 1) % len(playlist)  # 確保索引不超出範圍
+        print('播放下一首音樂')
+    else:
+        print('播放當前音樂')
+
     return {"status":1, "msg":f"播放：{playlist[index]}"}
+
+def get_mrl():
+    media_player = player.get_media_player()
+    media = media_player.get_media()
+    return media.get_mrl()
 
 def forward(sceonds):
     # 將當前播放時間向前跳轉指定的秒數
     if player is None: return {"status":-1, "msg":"播放器未開啟"}
     try: seconds = int(sceonds)
     except: seconds = 10
-    current_time = player.get_time() / 1000  # 轉換為秒
-    print(f"當前時間：{current_time}秒")
-    player.set_time(int((current_time + seconds) * 1000))  # 設定新的播放時間
+    media_player = player.get_media_player()
+    current_time = media_player.get_time()
+    new_time = current_time + seconds * 1000  # 換算為毫秒
+    media_player.set_time(new_time)
     return {"status":1, "msg":f"快轉 {seconds}秒"}
 
 def backward(sceonds):
@@ -151,25 +159,28 @@ def backward(sceonds):
     if player is None: return {"status":-1, "msg":"播放器未開啟"}
     try: seconds = int(sceonds)
     except: seconds = 10
-    current_time = player.get_time() / 1000  # 轉換為秒
-    print(f"當前時間：{current_time}秒")
-    player.set_time(int((current_time - seconds) * 1000))  # 設定新的播放時間
+    media_player = player.get_media_player()
+    current_time = media_player.get_time()
+    new_time = max(current_time - seconds * 1000, 0)
+    media_player.set_time(new_time)
     return {"status":1, "msg":f"倒退 {seconds}秒"}
 
 def volumeup(delta=20):
     # 將音量增加 20%
     if player is None: return {"status":-1, "msg":"播放器未開啟"}
-    current_volume = player.audio_get_volume()  # 取得當前音量
+    media_player = player.get_media_player()
+    current_volume = media_player.audio_get_volume()  # 取得當前音量
     new_volume = min(current_volume + delta, 100)  # 限制在 0-100 範圍內
-    player.audio_set_volume(new_volume)  # 設定新的音量
+    media_player.audio_set_volume(new_volume)  # 設定新的音量
     return {"status":1, "msg":f"音量增加到 {new_volume}%"}
 
 def volumedn(delta=20):
     # 將音量減少 20%
     if player is None: return {"status":-1, "msg":"播放器未開啟"}
-    current_volume = player.audio_get_volume()  # 取得當前音量
+    media_player = player.get_media_player()
+    current_volume = media_player.audio_get_volume()  # 取得當前音量
     new_volume = max(current_volume - delta, 0)  # 限制在 0-100 範圍內
-    player.audio_set_volume(new_volume)  # 設定新的音量
+    media_player.audio_set_volume(new_volume)  # 設定新的音量
     return {"status":1, "msg":f"音量減少到 {new_volume}%"}
 
 def volume(vol):
@@ -179,7 +190,8 @@ def volume(vol):
         clamp = lambda s: max(0, min(100, int(s.strip("%")))) 
         vol = clamp(vol)
     except: vol = 50
-    player.audio_set_volume(vol)
+    media_player = player.get_media_player()
+    media_player.audio_set_volume(vol)
     return {"status":1, "msg":f"音量設為 {vol}%"}
 
 
@@ -187,7 +199,8 @@ def mute(on):
     if player is None: return {"status":-1, "msg":"播放器未開啟"}
     try: on = on.lower() not in {"false", "off", "0"}
     except: on = True
-    player.audio_set_mute(on)  # 設定靜音狀態
+    media_player = player.get_media_player()
+    media_player.audio_set_mute(on)  # 設定靜音狀態
     return {"status":1, "msg":f"{'靜音' if on else '取消靜音'}"}
 
 
@@ -214,11 +227,13 @@ def download(search_query):
 
     print("下載完成！")
 
+
+  
+
 def execute(cmd, args):
     global player
     arg = args[0] if len(args)>0 else ''
     match cmd:
-        case "open": return open()
         case "close": return close()
         case "pause": return pause()
         case "resume": return resume()
