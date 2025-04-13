@@ -166,3 +166,4 @@ tmp/
 *.ogg
 *.mp4
 *.webm
+vosk_models/

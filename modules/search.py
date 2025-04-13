@@ -47,7 +47,11 @@ def get_page_content(url):
         response.encoding = response.apparent_encoding  # 自動偵測編碼
         soup = BeautifulSoup(response.text, "html.parser")
         # 提取所有文字內容
-        text_content = soup.get_text(separator="\n", strip=True)
+        # text_content = soup.get_text(separator="\n", strip=True)
+
+        content_div = soup.find("div")
+        text_content = content_div.get_text(separator="\n", strip=True)
+
         return {"status":1, "content":text_content}
 
     except requests.exceptions.SSLError:

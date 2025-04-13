@@ -6,6 +6,7 @@ else:
     from modules.speech import text_to_speech
 
 LLM_MODEL_NAME = "llama3.2"
+# LLM_MODEL_NAME = "mistral"
 
 DEBUG = True
 SPEAK = False
@@ -21,6 +22,7 @@ prompt_main_1 = """
 你是一個指令分析器，根據你收到的訊息，轉換成
 forward backward resume pause next play close query chat search 的指令，
 轉換規則，指令格式如下：
+用繁中語言回答，並且不需要任何額外的文字或說明。
 
 1. 訊息: 快轉       指令格式:  forward 時間轉成秒數，沒有時間則設成10
     範例:
@@ -42,8 +44,8 @@ forward backward resume pause next play close query chat search 的指令，
     搜尋抒情歌      play 抒情歌
     搜尋            query 請問要搜尋什麼
 
-7. 敘述: 聽\撥歌\撥放 關鍵字   指令格式:    play 關鍵字
-   敘述: 聽\撥歌\撥放         指令格式:     query 請問要撥的歌
+7. 訊息: 聽\撥歌\撥放 關鍵字   指令格式:    play 關鍵字
+   訊息: 聽\撥歌\撥放         指令格式:     query 請問要撥的歌
     範例:
     聽伍佰的歌      play 伍佰的歌
     聽              query 請問要聽什麼
@@ -59,10 +61,6 @@ forward backward resume pause next play close query chat search 的指令，
 10. 搜尋 關鍵字         指令格式:   search 關鍵字
     範例:
     搜尋頭條新聞        search 頭條新聞
-
-11. page            指令格式:   page
-    範例:
-        page        指令格式:   page
 
 11. 其他無法識別的指令，天氣、人名、問題...等都當成聊天    指令格式:   chat
     範例:
@@ -175,6 +173,107 @@ def process_stream(stream):
         if SPEECH is True: text_to_speech(full_response)
     print('\n')
 
+def get_time_tool():
+    return {
+        "type": "function",
+        "function": {
+            "name": "get_time",
+            "description": "",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    }
+
+def get_weather_tool():
+    return {
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    }
+
+def chat_tool():
+    return {
+        "type": "function",
+        "function": {
+            "name": "chat",
+            "description": "",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    }
+
+def forward_tool():
+    return {
+        "type": "function",
+        "function": {
+            "name": "forward",
+            "description": "",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "time": {
+                        "type": "string",
+                        "description": "快轉的秒數",
+                    }
+                },
+                "required": []
+            }
+        }
+    }
+
+system_prompt = """
+你是一個智慧型 AI 助理，能根據使用者的問題選擇適當的回應方式。
+    -天氣：     get_weather
+    -時間：     get_time
+    -快轉：     forward
+    -其他問題：     chat
+
+"""
+
+
+def assistant_tool(user_input):
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_input}
+    ]
+    response = ollama.chat(
+        model=LLM_MODEL_NAME,
+        messages=messages,
+        tools=[chat_tool(),get_time_tool(), get_weather_tool(), forward_tool()],
+    )
+    if 'tool_calls' in response['message']:
+        tool_call = response['message']['tool_calls']
+        print("🎯 Tool call received:", tool_call[0])
+        print("🎯 Tool call received:", tool_call[0]['function']['name'])
+        if tool_call[0]['function']['name'] == 'get_time':
+            tool_response = {
+                "role": "tool",
+                "content": f"時間是 {"10:30"}"
+            }
+    print([response['message'],tool_response])  
+
+    full_response = ollama.chat(
+        model=LLM_MODEL_NAME,
+        messages=messages+ [response['message'],tool_response]
+    )
+    print("Chatbot: ", full_response["message"]["content"])
+      
+
+
+
 def execute(cmd, args):
     arg = args[0] if len(args) > 0 else ''
     match cmd:
@@ -212,4 +311,6 @@ def unit_test():
 
 
 if __name__ == "__main__":
-    unit_test()
+    # unit_test()
+    assistant_tool("你現在幾點了？")
+    
